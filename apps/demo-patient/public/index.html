@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Demo App — QASL·TOMEX Patient</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; background:#f5f5f5; }
+  header { background:#2c3e50; color:white; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:1.2rem; }
+  nav a { color:#ecf0f1; text-decoration:none; margin-left:20px; font-size:0.9rem; }
+  .container { max-width:1000px; margin:40px auto; padding:0 20px; }
+  .card { background:white; border-radius:8px; padding:24px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  h2 { font-size:1.1rem; margin-bottom:16px; color:#2c3e50; }
+  input, textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; margin-bottom:12px; font-size:0.9rem; }
+  button { background:#3498db; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-size:0.9rem; }
+  button:hover { background:#2980b9; }
+  .response { margin-top:12px; padding:12px; background:#f8f9fa; border-radius:4px; font-family:monospace; font-size:0.8rem; white-space:pre-wrap; max-height:200px; overflow-y:auto; }
+  .products { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .product-card { border:1px solid #eee; border-radius:8px; padding:16px; text-align:center; }
+  .product-card h3 { margin-bottom:8px; }
+  .price { font-size:1.2rem; font-weight:bold; color:#27ae60; margin-bottom:8px; }
+  .stock { font-size:0.8rem; color:#7f8c8d; margin-bottom:12px; }
+  .warning { background:#fff3cd; border:1px solid #ffc107; padding:12px; border-radius:4px; font-size:0.85rem; margin-bottom:20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛒 Demo Shop — QASL·TOMEX Patient App</h1>
+  <nav>
+    <a href="#login">Login</a>
+    <a href="#products">Productos</a>
+    <a href="#comments">Comentarios</a>
+    <a href="#admin">Admin</a>
+  </nav>
+</header>
+
+<div class="container">
+
+  <div class="warning">
+    ⚠️ Esta aplicación tiene <strong>vulnerabilidades intencionales</strong> 
+    para que QASL·TOMEX las detecte y corrija en la demo.
+  </div>
+
+  <!-- LOGIN -->
+  <div class="card" id="login">
+    <h2>🔐 Login</h2>
+    <input type="text" id="username" placeholder="Usuario (prueba: admin)" value="admin"/>
+    <input type="password" id="password" placeholder="Password (prueba: admin123)" value="admin123"/>
+    <button onclick="doLogin()">Iniciar Sesión</button>
+    <div class="response" id="loginResponse"></div>
+  </div>
+
+  <!-- PRODUCTOS -->
+  <div class="card" id="products">
+    <h2>📦 Productos</h2>
+    <button onclick="loadProducts()">Cargar Productos</button>
+    <div id="productList" style="margin-top:16px"></div>
+  </div>
+
+  <!-- CHECKOUT -->
+  <div class="card">
+    <h2>🛒 Checkout</h2>
+    <input type="number" id="productId" placeholder="ID del producto" value="1"/>
+    <input type="number" id="quantity" placeholder="Cantidad" value="1"/>
+    <button onclick="doCheckout()">Comprar</button>
+    <div class="response" id="checkoutResponse"></div>
+  </div>
+
+  <!-- COMENTARIOS — XSS -->
+  <div class="card" id="comments">
+    <h2>💬 Comentarios</h2>
+    <textarea id="commentText" rows="3" placeholder="Escribí un comentario... (prueba XSS: <script>alert('XSS')</script>)"></textarea>
+    <button onclick="postComment()">Publicar</button>
+    <div class="response" id="commentResponse"></div>
+  </div>
+
+  <!-- ADMIN — Auth Bypass -->
+  <div class="card" id="admin">
+    <h2>👑 Panel Admin</h2>
+    <p style="font-size:0.85rem;color:#7f8c8d;margin-bottom:12px">
+      Este endpoint acepta cualquier token sin validar firma.
+    </p>
+    <input type="text" id="adminToken" placeholder="Token (cualquier valor funciona)"/>
+    <button onclick="getAdminUsers()">Ver Todos los Usuarios</button>
+    <div class="response" id="adminResponse"></div>
+  </div>
+
+</div>
+
+<script>
+  let authToken = '';
+
+  async function doLogin() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (data.token) authToken = data.token;
+    document.getElementById('loginResponse').textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function loadProducts() {
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    const html = `<div class="products">${data.products.map(p => `
+      <div class="product-card">
+        <h3>${p.name}</h3>
+        <div class="price">$${p.price}</div>
+        <div class="stock">Stock: ${p.stock}</div>
+        <button onclick="quickBuy(${p.id})">Comprar</button>
+      </div>`).join('')}</div>`;
+    document.getElementById('productList').innerHTML = html;
+  }
+
+  function quickBuy(id) {
+    document.getElementById('productId').value = id;
+    doCheckout();
+  }
+
+  async function doCheckout() {
+    const productId = parseInt(document.getElementById('productId').value);
+    const quantity = parseInt(document.getElementById('quantity').value);
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, quantity, userId: 1 })
+    });
+    const data = await res.json();
+    document.getElementById('checkoutResponse').textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function postComment() {
+    const comment = document.getElementById('commentText').value;
+    const res = await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment, userId: 1 })
+    });
+    const data = await res.json();
+    document.getElementById('commentResponse').textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function getAdminUsers() {
+    const token = document.getElementById('adminToken').value || 'cualquier-token-funciona';
+    const res = await fetch('/api/admin/users', {
+      headers: { 'Authorization': token }
+    });
+    const data = await res.json();
+    document.getElementById('adminResponse').textContent = JSON.stringify(data, null, 2);
+  }
+
+  // Cargar productos al inicio
+  loadProducts();
+</script>
+</body>
+</html>

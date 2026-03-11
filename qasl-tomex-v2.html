@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QASL·TOMEX — Quantum Soul Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #080c1a;
+  --deep: #0c1029;
+  --cyan: #00e5ff;
+  --cyan2: #00b8d9;
+  --blue: #0052cc;
+  --violet: #6600ff;
+  --green: #00ff94;
+  --red: #ff1744;
+  --gold: #ffc400;
+  --white: #e8f4f8;
+  --dim: rgba(0,229,255,0.15);
+  --glass: rgba(8,18,40,0.65);
+  --glass-border: rgba(0,229,255,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: linear-gradient(145deg, #060a18 0%, #0c1029 30%, #0a1225 60%, #080e20 100%);
+  color: var(--white);
+  font-family: 'Rajdhani', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  cursor: default;
+}
+
+/* ── SUBTLE AMBIENT GLOW ── */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse 800px 600px at 20% 30%, rgba(0,229,255,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 600px 500px at 80% 70%, rgba(102,0,255,0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 400px at 50% 50%, rgba(0,82,204,0.04) 0%, transparent 60%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── SOFT VIGNETTE ── */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(6,10,24,0.7) 100%);
+  pointer-events:none;
+  z-index:1;
+}
+
+canvas#particles {
+  position:fixed;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+}
+
+/* ── HEADER ── */
+header {
+  position:fixed;
+  top:0; left:0; right:0;
+  z-index:100;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 48px;
+  border-bottom:1px solid rgba(0,229,255,0.06);
+  background:rgba(8,14,32,0.8);
+  backdrop-filter:blur(24px);
+}
+
+.logo {
+  font-family:'Orbitron',monospace;
+  font-weight:900;
+  font-size:2.2rem;
+  letter-spacing:8px;
+  color:var(--cyan);
+  text-shadow:0 0 30px var(--cyan), 0 0 60px rgba(0,229,255,0.3);
+  position:relative;
+}
+.logo::after {
+  content:'QUANTUM SOUL SCANNER';
+  position:absolute;
+  bottom:-16px;
+  left:0;
+  font-size:0.65rem;
+  letter-spacing:6px;
+  color:rgba(0,229,255,0.4);
+  font-weight:400;
+}
+
+.header-right {
+  display:flex;
+  align-items:center;
+  gap:28px;
+}
+
+.agent-pill {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.85rem;
+  letter-spacing:3px;
+  padding:10px 18px;
+  border:1px solid var(--glass-border);
+  border-radius:6px;
+  background:var(--glass);
+  backdrop-filter:blur(12px);
+  transition:all 0.3s;
+}
+.agent-pill.active { border-color:rgba(0,229,255,0.35); background:rgba(0,229,255,0.08); box-shadow:0 0 20px rgba(0,229,255,0.06); }
+.agent-pill .dot {
+  width:8px;height:8px;border-radius:50%;
+  background:#333;
+  transition:all 0.3s;
+}
+.agent-pill.active .dot { background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 1.2s infinite; }
+.agent-pill.claude .dot { background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+.agent-pill.gpt .dot { background:var(--green); }
+.agent-pill.gemini .dot { background:var(--violet); box-shadow:0 0 8px var(--violet); }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── CIPHER TICKER ── */
+.cipher-ticker {
+  position:fixed;
+  top:85px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:50;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  letter-spacing:4px;
+  color:rgba(102,0,255,0.5);
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+.cipher-label { color:rgba(102,0,255,0.7); }
+#cipherFlow { animation:cipherPulse 2s ease-in-out infinite; }
+@keyframes cipherPulse { 0%,100%{opacity:0.3} 50%{opacity:0.8} }
+
+/* ── MAIN SCENE ── */
+.scene {
+  position:relative;
+  width:680px;
+  height:680px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:10;
+  margin:auto;
+  margin-top:calc(50vh - 340px);
+}
+
+/* ── DIMENSION RINGS ── */
+.dim-ring {
+  position:absolute;
+  border-radius:50%;
+  border:1px solid transparent;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.dim-ring-3 {
+  width:640px;height:640px;
+  border-color:rgba(0,229,255,0.1);
+  box-shadow:0 0 40px rgba(0,229,255,0.03);
+  animation:rotSlow 40s linear infinite;
+}
+.dim-ring-2 {
+  width:520px;height:520px;
+  border-color:rgba(102,0,255,0.12);
+  box-shadow:0 0 30px rgba(102,0,255,0.03);
+  animation:rotSlow 25s linear infinite reverse;
+}
+.dim-ring-1 {
+  width:400px;height:400px;
+  border-color:rgba(0,255,148,0.1);
+  box-shadow:0 0 25px rgba(0,255,148,0.03);
+  animation:rotSlow 16s linear infinite;
+}
+
+@keyframes rotSlow { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+
+/* Orbital nodes */
+.orbital-node {
+  position:absolute;
+  width:14px;height:14px;
+  border-radius:50%;
+  top:-7px;
+  left:calc(50% - 7px);
+  transition:all 0.5s;
+}
+.dim-ring-3 .orbital-node { background:var(--cyan); box-shadow:0 0 15px var(--cyan), 0 0 30px rgba(0,229,255,0.4); }
+.dim-ring-2 .orbital-node { background:var(--violet); box-shadow:0 0 15px var(--violet); }
+.dim-ring-1 .orbital-node { background:var(--green); box-shadow:0 0 15px var(--green); }
+
+.dim-ring-3 .orbital-node::after,
+.dim-ring-2 .orbital-node::after,
+.dim-ring-1 .orbital-node::after {
+  content:'';
+  position:absolute;
+  bottom:-7px;left:calc(50% - 7px);
+  width:14px;height:14px;
+  border-radius:50%;
+  background:inherit;
+  box-shadow:inherit;
+}
+
+/* ── DIMENSION LABELS ── */
+.dim-label {
+  position:absolute;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.75rem;
+  letter-spacing:4px;
+  opacity:0;
+  transition:opacity 0.5s;
+  white-space:nowrap;
+}
+.dim-label-3 { top:12px; left:50%; transform:translateX(-50%); color:var(--cyan); }
+.dim-label-2 { top:58px; left:50%; transform:translateX(-50%); color:var(--violet); }
+.dim-label-1 { top:106px; left:50%; transform:translateX(-50%); color:var(--green); }
+.scanning .dim-label { opacity:0.7; }
+
+/* ── SCAN BEAM ── */
+.scan-beam {
+  position:absolute;
+  width:640px;
+  height:3px;
+  background:linear-gradient(90deg, transparent, var(--cyan), rgba(0,229,255,0.8), var(--cyan), transparent);
+  box-shadow:0 0 20px var(--cyan), 0 0 40px rgba(0,229,255,0.4);
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  opacity:0;
+  pointer-events:none;
+  z-index:25;
+}
+.scan-beam.active { animation:beamSweep 2.5s ease-in-out infinite; }
+@keyframes beamSweep {
+  0%{top:5%;opacity:0}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{top:95%;opacity:0}
+}
+
+/* ── SOUL BEAM (inner) ── */
+.soul-beam {
+  position:absolute;
+  width:340px;
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  box-shadow:0 0 10px var(--gold);
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  opacity:0;
+  z-index:26;
+}
+.soul-beam.active { animation:soulSweep 1.8s ease-in-out infinite reverse; }
+@keyframes soulSweep {
+  0%{top:20%;opacity:0}
+  15%{opacity:0.8}
+  85%{opacity:0.8}
+  100%{top:80%;opacity:0}
+}
+
+/* ── CORE ── */
+.core {
+  position:relative;
+  width:280px;height:280px;
+  border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,
+    rgba(0,229,255,0.12) 0%,
+    rgba(12,16,41,0.95) 40%,
+    rgba(8,12,26,0.98) 100%
+  );
+  border:1px solid rgba(0,229,255,0.18);
+  box-shadow:
+    0 0 60px rgba(0,229,255,0.1),
+    0 0 120px rgba(0,82,204,0.06),
+    inset 0 0 60px rgba(0,229,255,0.04),
+    inset 0 0 120px rgba(0,0,0,0.3);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+  cursor:pointer;
+  transition:all 0.4s;
+  animation:corePulse 5s ease-in-out infinite;
+}
+
+.core:hover {
+  border-color:rgba(0,229,255,0.6);
+  box-shadow:0 0 80px rgba(0,229,255,0.3), 0 0 150px rgba(0,82,204,0.2), inset 0 0 80px rgba(0,229,255,0.08);
+  transform:scale(1.04);
+}
+
+@keyframes corePulse {
+  0%,100%{box-shadow:0 0 50px rgba(0,229,255,0.15),0 0 100px rgba(0,82,204,0.1),inset 0 0 50px rgba(0,229,255,0.05)}
+  50%{box-shadow:0 0 80px rgba(0,229,255,0.25),0 0 140px rgba(0,82,204,0.15),inset 0 0 80px rgba(0,229,255,0.08)}
+}
+
+.core-hex { font-size:4rem; line-height:1; margin-bottom:6px; filter:drop-shadow(0 0 15px var(--cyan)); }
+.core-name {
+  font-family:'Orbitron',monospace;
+  font-size:1.3rem;
+  letter-spacing:6px;
+  color:var(--cyan);
+  text-shadow:0 0 15px var(--cyan);
+}
+.core-sub {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;
+  letter-spacing:3px;
+  color:rgba(0,229,255,0.4);
+  margin-top:5px;
+}
+.core-url {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;
+  color:var(--green);
+  margin-top:8px;
+  max-width:220px;
+  text-align:center;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity 0.6s;
+}
+
+/* Progress ring */
+.prog-ring {
+  position:absolute;
+  width:320px;height:320px;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:15;
+  opacity:0;
+  transition:opacity 0.5s;
+  pointer-events:none;
+}
+.prog-ring.show { opacity:1; }
+.prog-circle {
+  fill:none;
+  stroke:var(--cyan);
+  stroke-width:1;
+  stroke-linecap:round;
+  stroke-dasharray:754;
+  stroke-dashoffset:754;
+  filter:drop-shadow(0 0 4px var(--cyan));
+  transition:stroke-dashoffset 0.4s ease;
+}
+
+/* ── LEFT PANEL — DIMENSIONS ── */
+.left-panel {
+  position:fixed;
+  left:32px;
+  top:50%;
+  transform:translateY(-50%);
+  width:320px;
+  z-index:50;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.dim-card {
+  padding:18px 20px;
+  border:1px solid var(--glass-border);
+  background:var(--glass);
+  backdrop-filter:blur(16px);
+  border-radius:8px;
+  position:relative;
+  overflow:hidden;
+  transition:all 0.4s;
+}
+.dim-card::before {
+  content:'';
+  position:absolute;
+  left:0;top:0;bottom:0;width:3px;
+  border-radius:3px 0 0 3px;
+}
+.dim-card.surface::before { background:var(--cyan); }
+.dim-card.veins::before { background:var(--green); }
+.dim-card.soul::before { background:var(--gold); }
+
+.dim-card.active { border-color:rgba(0,229,255,0.25); background:rgba(0,229,255,0.04); box-shadow:0 4px 24px rgba(0,229,255,0.06); }
+.dim-card.veins.active { border-color:rgba(0,255,148,0.25); background:rgba(0,255,148,0.03); box-shadow:0 4px 24px rgba(0,255,148,0.06); }
+.dim-card.soul.active { border-color:rgba(255,196,0,0.25); background:rgba(255,196,0,0.03); box-shadow:0 4px 24px rgba(255,196,0,0.06); }
+
+.dim-card-title {
+  font-family:'Orbitron',monospace;
+  font-size:0.9rem;
+  letter-spacing:4px;
+  margin-bottom:8px;
+}
+.dim-card.surface .dim-card-title { color:var(--cyan); }
+.dim-card.veins .dim-card-title { color:var(--green); }
+.dim-card.soul .dim-card-title { color:var(--gold); }
+
+.dim-card-desc { font-size:0.8rem; color:rgba(255,255,255,0.5); line-height:1.6; min-height:32px; }
+.dim-card-bar { margin-top:10px; height:3px; background:rgba(255,255,255,0.08); border-radius:2px; }
+.dim-card-progress { height:100%; width:0%; transition:width 0.5s ease; border-radius:2px; }
+.dim-card.surface .dim-card-progress { background:var(--cyan); box-shadow:0 0 6px var(--cyan); }
+.dim-card.veins .dim-card-progress { background:var(--green); box-shadow:0 0 6px var(--green); }
+.dim-card.soul .dim-card-progress { background:var(--gold); box-shadow:0 0 6px var(--gold); }
+
+/* ── RIGHT PANEL — FINDINGS ── */
+.right-panel {
+  position:fixed;
+  right:32px;
+  top:50%;
+  transform:translateY(-50%);
+  width:340px;
+  z-index:50;
+}
+
+.findings-header {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.75rem;
+  letter-spacing:4px;
+  color:rgba(0,229,255,0.4);
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(0,229,255,0.1);
+}
+
+.finding {
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:10px;
+  padding:12px 14px;
+  border-radius:6px;
+  background:var(--glass);
+  border:1px solid var(--glass-border);
+  font-size:0.78rem;
+  line-height:1.5;
+  opacity:0;
+  transform:translateX(12px);
+  transition:all 0.4s ease;
+}
+.finding.show { opacity:1; transform:translateX(0); }
+.finding-icon { flex-shrink:0; font-size:1rem; }
+.finding-text { color:rgba(255,255,255,0.65); }
+.finding.critical { border-color:rgba(255,23,68,0.2); background:rgba(255,23,68,0.06); }
+.finding.warning { border-color:rgba(255,196,0,0.15); background:rgba(255,196,0,0.04); }
+.finding.fixed { border-color:rgba(0,255,148,0.15); background:rgba(0,255,148,0.04); }
+
+/* ── TERMINAL ── */
+.terminal {
+  position:fixed;
+  bottom:130px;
+  left:50%;
+  transform:translateX(-50%);
+  width:640px;
+  background:var(--glass);
+  border:1px solid var(--glass-border);
+  border-radius:8px;
+  padding:14px 20px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.78rem;
+  z-index:50;
+  backdrop-filter:blur(16px);
+}
+.terminal-header {
+  color:rgba(0,229,255,0.3);
+  letter-spacing:4px;
+  font-size:0.65rem;
+  margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+}
+.log-line { line-height:2; }
+.log-line.info { color:rgba(0,229,255,0.6); }
+.log-line.warn { color:rgba(255,196,0,0.8); }
+.log-line.error { color:rgba(255,23,68,0.8); }
+.log-line.success { color:rgba(0,255,148,0.8); }
+.log-line.soul { color:rgba(255,196,0,0.7); }
+
+/* ── INPUT PANEL ── */
+.input-panel {
+  position:fixed;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:14px;
+  align-items:flex-end;
+  z-index:100;
+  background:rgba(8,14,32,0.9);
+  backdrop-filter:blur(24px);
+  padding:18px 28px;
+  border:1px solid var(--glass-border);
+  border-radius:10px;
+  width:auto;
+  max-width:95vw;
+}
+
+.inp-group { display:flex; flex-direction:column; gap:6px; }
+.inp-label { font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:3px; color:rgba(0,229,255,0.4); }
+.inp-field {
+  background:rgba(0,229,255,0.03);
+  border:1px solid rgba(0,229,255,0.12);
+  color:var(--cyan);
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.95rem;
+  padding:12px 16px;
+  border-radius:6px;
+  outline:none;
+  transition:border-color 0.3s;
+}
+.inp-field:focus { border-color:rgba(0,229,255,0.5); box-shadow:0 0 12px rgba(0,229,255,0.1); }
+.inp-field::placeholder { color:rgba(0,229,255,0.2); }
+
+.btn-voice {
+  padding:12px 16px;
+  background:var(--glass);
+  border:1px solid rgba(102,0,255,0.25);
+  color:var(--violet);
+  cursor:pointer;
+  border-radius:8px;
+  font-size:1.2rem;
+  transition:all 0.3s;
+  align-self:flex-end;
+}
+.btn-voice:hover { background:rgba(102,0,255,0.1); }
+.btn-voice.on { border-color:var(--violet); background:rgba(102,0,255,0.2); animation:voicePulse 1s infinite; }
+@keyframes voicePulse { 0%,100%{box-shadow:0 0 0 0 rgba(102,0,255,0.4)} 50%{box-shadow:0 0 0 8px rgba(102,0,255,0)} }
+
+.btn-scan {
+  font-family:'Orbitron',monospace;
+  font-size:0.8rem;
+  letter-spacing:3px;
+  padding:12px 24px;
+  background:transparent;
+  border:1px solid var(--cyan);
+  color:var(--cyan);
+  cursor:pointer;
+  border-radius:8px;
+  white-space:nowrap;
+  transition:all 0.3s;
+  position:relative;
+  overflow:hidden;
+  align-self:flex-end;
+  box-shadow:0 0 20px rgba(0,229,255,0.15);
+}
+.btn-scan::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg, var(--cyan), var(--cyan2));
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform 0.3s;
+  z-index:-1;
+}
+.btn-scan:hover { color:#080c1a; }
+.btn-scan:hover::before { transform:scaleX(1); }
+.btn-scan:disabled { opacity:0.3; cursor:not-allowed; }
+.btn-scan:disabled:hover { color:var(--cyan); }
+.btn-scan:disabled::before { display:none; }
+
+/* ── RESULT OVERLAY ── */
+.result {
+  position:fixed;
+  inset:0;
+  background:linear-gradient(145deg, rgba(6,10,24,0.98) 0%, rgba(12,16,41,0.98) 50%, rgba(8,14,32,0.98) 100%);
+  z-index:300;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:28px;
+}
+.result.show { display:flex; animation:fadeUp 0.6s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.result-title {
+  font-family:'Orbitron',monospace;
+  font-size:3rem;
+  font-weight:900;
+  letter-spacing:10px;
+  color:var(--green);
+  text-shadow:0 0 50px var(--green), 0 0 100px rgba(0,255,148,0.3);
+}
+.result-sub {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.9rem;
+  letter-spacing:6px;
+  color:rgba(0,255,148,0.5);
+  margin-top:-16px;
+}
+
+.result-grid { display:grid; grid-template-columns:repeat(3,220px); gap:18px; }
+.result-card {
+  padding:28px;
+  border:1px solid var(--glass-border);
+  background:var(--glass);
+  backdrop-filter:blur(12px);
+  border-radius:10px;
+  text-align:center;
+}
+.result-val {
+  font-family:'Orbitron',monospace;
+  font-size:3.2rem;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.result-lbl { font-family:'Share Tech Mono',monospace; font-size:0.75rem; letter-spacing:3px; color:rgba(255,255,255,0.4); }
+.result-card.g .result-val { color:var(--green); text-shadow:0 0 20px var(--green); }
+.result-card.w .result-val { color:var(--gold); text-shadow:0 0 20px var(--gold); }
+.result-card.b .result-val { color:var(--red); text-shadow:0 0 20px var(--red); }
+.result-card.c .result-val { color:var(--cyan); text-shadow:0 0 20px var(--cyan); }
+
+.result-prediction {
+  width:740px;
+  padding:24px 30px;
+  border:1px solid rgba(255,196,0,0.15);
+  background:rgba(255,196,0,0.03);
+  border-radius:10px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.85rem;
+  line-height:2;
+  color:rgba(255,196,0,0.8);
+}
+.result-prediction-title {
+  font-family:'Orbitron',monospace;
+  font-size:0.85rem;
+  letter-spacing:4px;
+  color:var(--gold);
+  margin-bottom:12px;
+}
+
+.btn-reset {
+  font-family:'Orbitron',monospace;
+  font-size:0.9rem;
+  letter-spacing:4px;
+  padding:16px 40px;
+  background:transparent;
+  border:1px solid rgba(0,229,255,0.3);
+  color:var(--cyan);
+  cursor:pointer;
+  border-radius:8px;
+  transition:all 0.3s;
+}
+.btn-reset:hover { background:rgba(0,229,255,0.08); box-shadow:0 0 20px rgba(0,229,255,0.1); }
+
+/* ── SCORE RING ── */
+.score-ring {
+  position:relative;
+  width:160px;height:160px;
+}
+.score-val {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Orbitron',monospace;
+  font-size:2.4rem;
+  font-weight:900;
+  color:var(--green);
+  text-shadow:0 0 20px var(--green);
+}
+.score-label {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;
+  letter-spacing:3px;
+  color:rgba(0,255,148,0.4);
+  position:absolute;
+  bottom:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">QASL·TOMEX</div>
+  <div class="header-right">
+    <div class="agent-pill claude" id="pill-claude">
+      <div class="dot"></div>CLAUDE·DIRECTOR
+    </div>
+    <div class="agent-pill gpt" id="pill-gpt">
+      <div class="dot"></div>GPT·VENAS
+    </div>
+    <div class="agent-pill gemini" id="pill-gemini">
+      <div class="dot"></div>GEMINI·SUPERFICIE
+    </div>
+  </div>
+</header>
+
+<!-- CIPHER TICKER -->
+<div class="cipher-ticker">
+  <span class="cipher-label">QASL·CIPHER</span>
+  <span id="cipherFlow">Ω∆Ψ∑⌘⊕⊗⊙∞◈◉▣</span>
+</div>
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <div class="dim-card surface" id="card-surface">
+    <div class="dim-card-title">DIM·1 SUPERFICIE</div>
+    <div class="dim-card-desc" id="desc-surface">En espera de activación...</div>
+    <div class="dim-card-bar"><div class="dim-card-progress" id="prog-surface"></div></div>
+  </div>
+  <div class="dim-card veins" id="card-veins">
+    <div class="dim-card-title">DIM·2 VENAS</div>
+    <div class="dim-card-desc" id="desc-veins">En espera de activación...</div>
+    <div class="dim-card-bar"><div class="dim-card-progress" id="prog-veins"></div></div>
+  </div>
+  <div class="dim-card soul" id="card-soul">
+    <div class="dim-card-title">DIM·3 ALMA</div>
+    <div class="dim-card-desc" id="desc-soul">En espera de activación...</div>
+    <div class="dim-card-bar"><div class="dim-card-progress" id="prog-soul"></div></div>
+  </div>
+</div>
+
+<!-- MAIN SCENE -->
+<div class="scene" id="scene">
+  <div class="dim-ring dim-ring-3">
+    <div class="orbital-node"></div>
+    <span class="dim-label dim-label-3">SUPERFICIE — MCP·PLAYWRIGHT</span>
+  </div>
+  <div class="dim-ring dim-ring-2">
+    <div class="orbital-node"></div>
+    <span class="dim-label dim-label-2">VENAS — API·CAPTURE</span>
+  </div>
+  <div class="dim-ring dim-ring-1">
+    <div class="orbital-node"></div>
+    <span class="dim-label dim-label-1">ALMA — AST·ANALYZER</span>
+  </div>
+
+  <svg class="prog-ring" id="progRing" viewBox="0 0 240 240">
+    <circle class="prog-circle" id="progCircle" cx="120" cy="120" r="120"/>
+  </svg>
+
+  <div class="scan-beam" id="scanBeam"></div>
+  <div class="soul-beam" id="soulBeam"></div>
+
+  <div class="core" id="core" onclick="handleCoreClick()">
+    <div class="core-hex">⬡</div>
+    <div class="core-name">TOMEX</div>
+    <div class="core-sub">QUANTUM SOUL SCANNER</div>
+    <div class="core-url" id="coreUrl"></div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="findings-header">// DIAGNÓSTICO EN VIVO</div>
+  <div id="findingsList"></div>
+</div>
+
+<!-- TERMINAL -->
+<div class="terminal">
+  <div class="terminal-header">
+    <span>// QASL·TOMEX·LOG</span>
+    <span id="logCount">0 eventos</span>
+  </div>
+  <div id="termLog"></div>
+</div>
+
+<!-- INPUT PANEL -->
+<div class="input-panel">
+  <div class="inp-group" style="flex:2">
+    <div class="inp-label">TARGET URL</div>
+    <input class="inp-field" id="inpUrl" type="text" placeholder="https://app.example.com"/>
+  </div>
+  <div class="inp-group" style="flex:1">
+    <div class="inp-label">USUARIO</div>
+    <input class="inp-field" id="inpUser" type="text" placeholder="admin"/>
+  </div>
+  <div class="inp-group" style="flex:1">
+    <div class="inp-label">PASSWORD</div>
+    <input class="inp-field" id="inpPass" type="password" placeholder="••••••"/>
+  </div>
+  <div class="inp-group" style="flex:0.8">
+    <div class="inp-label">AMBIENTE</div>
+    <select class="inp-field" id="inpEnv">
+      <option>staging</option>
+      <option>production</option>
+      <option>dev</option>
+    </select>
+  </div>
+  <button class="btn-voice" id="btnVoice" onclick="toggleVoice()" title="QASL·VOICE">🎙️</button>
+  <button class="btn-scan" id="btnScan" onclick="startTomex()">ACTIVAR TOMEX</button>
+</div>
+
+<!-- RESULT -->
+<div class="result" id="resultOverlay">
+  <div class="result-title">⬡ DIAGNÓSTICO COMPLETO ⬡</div>
+  <div class="result-sub">QASL·TOMEX · QUANTUM SOUL SCANNER</div>
+  <div style="display:flex;gap:40px;align-items:center">
+    <div class="result-grid" id="resultGrid"></div>
+    <div>
+      <svg viewBox="0 0 100 100" width="180" height="180">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(0,255,148,0.1)" stroke-width="2"/>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#00ff94" stroke-width="2.5"
+          stroke-dasharray="289" stroke-dashoffset="29"
+          stroke-linecap="round"
+          style="filter:drop-shadow(0 0 8px #00ff94);transform:rotate(-90deg);transform-origin:50% 50%"/>
+      </svg>
+      <div style="text-align:center;margin-top:8px">
+        <div style="font-family:Orbitron,monospace;font-size:2.8rem;font-weight:900;color:#00ff94;text-shadow:0 0 30px #00ff94">90</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:3px;color:rgba(0,255,148,0.4)">HEALTH SCORE</div>
+      </div>
+    </div>
+  </div>
+  <div class="result-prediction" id="resultPrediction">
+    <div class="result-prediction-title">🔮 PREDICCIÓN — PRÓXIMOS 30 DÍAS</div>
+    <div id="predText"></div>
+  </div>
+  <button class="btn-reset" onclick="resetTomex()">NUEVO ESCANEO</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// QASL·TOMEX — DASHBOARD v2 — REAL-TIME SSE
+// Conecta al backend via Server-Sent Events
+// ═══════════════════════════════════════════════════════════
+
+// ── PARTICLES ──
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const particles = Array.from({length:50},()=>({
+  x: Math.random()*canvas.width,
+  y: Math.random()*canvas.height,
+  vx: (Math.random()-0.5)*0.15,
+  vy: (Math.random()-0.5)*0.15,
+  r: Math.random()*1.2+0.2,
+  a: Math.random(),
+  color: ['rgba(0,229,255,','rgba(102,0,255,','rgba(0,255,148,'][Math.floor(Math.random()*3)]
+}));
+
+function drawParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    p.a+=0.005;
+    if(p.x<0||p.x>canvas.width) p.vx*=-1;
+    if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.color+Math.abs(Math.sin(p.a))*0.35+')';
+    ctx.fill();
+  });
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// ── CIPHER FLOW ──
+const cipherChars='ΩΔΨ∑⌘⊕⊗⊙∞◈◉▣▦░▒∫∂∇λμπσφχψωαβγ01';
+setInterval(()=>{
+  document.getElementById('cipherFlow').textContent =
+    Array.from({length:16},()=>cipherChars[Math.floor(Math.random()*cipherChars.length)]).join('');
+},280);
+
+// ── STATE ──
+let scanning = false;
+let logCount = 0;
+let evtSource = null;
+let progValue = 0;
+let progInterval = null;
+
+// ── Detectar base URL del server ──
+const BASE = window.location.protocol === 'file:' ? 'http://localhost:9999' : '';
+
+// ── LOG ──
+function log(msg, type='info'){
+  const el = document.getElementById('termLog');
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  line.textContent = `> ${msg}`;
+  el.appendChild(line);
+  while(el.children.length > 8) el.removeChild(el.firstChild);
+  logCount++;
+  document.getElementById('logCount').textContent = `${logCount} eventos`;
+}
+
+// ── ADD REAL FINDING ──
+function addFinding(severity, text) {
+  const iconMap = { critical:'🔴', high:'🟡', medium:'🔵', fixed:'🟢' };
+  const clsMap = { critical:'critical', high:'warning', medium:'warning', fixed:'fixed' };
+  const list = document.getElementById('findingsList');
+  const el = document.createElement('div');
+  el.className = `finding ${clsMap[severity] || 'warning'}`;
+  el.innerHTML = `<span class="finding-icon">${iconMap[severity] || '🔵'}</span><span class="finding-text">${text}</span>`;
+  list.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  const logType = severity === 'critical' ? 'error' : severity === 'fixed' ? 'success' : 'warn';
+  log(text, logType);
+}
+
+// ── PROGRESS ──
+function setProgress(val){
+  const c = document.getElementById('progCircle');
+  c.style.strokeDashoffset = 754 - (754 * val / 100);
+}
+
+// ── AGENTS ──
+function activateAgents(){
+  ['claude','gpt','gemini'].forEach(a => {
+    document.getElementById(`pill-${a}`).classList.add('active');
+  });
+}
+function deactivateAgents(){
+  ['claude','gpt','gemini'].forEach(a => {
+    document.getElementById(`pill-${a}`).classList.remove('active');
+  });
+}
+
+// ── SSE CONNECTION ──
+function connectSSE() {
+  return new Promise((resolve) => {
+    if (evtSource) evtSource.close();
+    evtSource = new EventSource(BASE + '/api/events');
+    let resolved = false;
+
+    evtSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (!resolved && data.type === 'connected') {
+        resolved = true;
+        resolve();
+      }
+      handleEvent(data);
+    };
+
+    evtSource.onerror = () => {
+      log('Conexion SSE perdida — reintentando...', 'warn');
+    };
+
+    // Fallback: si no llega 'connected' en 3s, continuar igual
+    setTimeout(() => { if (!resolved) { resolved = true; resolve(); } }, 3000);
+  });
+}
+
+// ── EVENT HANDLER — procesa eventos reales del backend ──
+function handleEvent(data) {
+  switch(data.type) {
+    case 'connected':
+      log('Conectado al servidor TOMEX', 'success');
+      break;
+
+    case 'phase':
+      handlePhase(data);
+      break;
+
+    case 'dimension':
+      handleDimension(data);
+      break;
+
+    case 'finding':
+      addFinding(data.severity, `${data.description}${data.location ? ' — ' + data.location : ''}`);
+      break;
+
+    case 'complete':
+      showResult(data);
+      break;
+
+    case 'error':
+      log(`Error: ${data.message}`, 'error');
+      scanning = false;
+      document.getElementById('btnScan').disabled = false;
+      break;
+  }
+}
+
+function handlePhase(data) {
+  const phaseNames = {
+    awaken: 'Activando agentes',
+    snapshot: 'Capturando snapshot',
+    scan: 'Escaneando 3 dimensiones',
+    diagnose: 'Consolidando diagnostico',
+    heal: 'Aplicando auto-fixes',
+    predict: 'Calculando predicciones',
+    report: 'Generando reporte'
+  };
+
+  if (data.status === 'start') {
+    log(`${phaseNames[data.phase] || data.phase}...`, 'info');
+    const phaseProgress = { awaken:10, snapshot:25, scan:50, diagnose:70, heal:80, predict:90, report:95 };
+    if (phaseProgress[data.phase]) {
+      progValue = phaseProgress[data.phase];
+      setProgress(progValue);
+    }
+  }
+
+  if (data.status === 'done') {
+    if (data.phase === 'snapshot' && data.data) {
+      log(`Snapshot: ${data.data.elements} elementos, ${data.data.forms} forms, ${data.data.apis} APIs`, 'success');
+    }
+    if (data.phase === 'heal' && data.data) {
+      log(`Auto-heal: ${data.data.fixed}/${data.data.total} fixes aplicados`, 'success');
+    }
+  }
+}
+
+function handleDimension(data) {
+  const dim = data.dim;
+  document.getElementById(`card-${dim}`).classList.add('active');
+  document.getElementById(`desc-${dim}`).textContent = data.desc;
+
+  if (data.status === 'scanning') {
+    document.getElementById(`prog-${dim}`).style.width = '50%';
+    const dimLog = { surface:'[GEMINI]', veins:'[GPT-4]', soul:'[CLAUDE]' };
+    log(`${dimLog[dim] || ''} ${data.desc}`, dim === 'soul' ? 'soul' : 'info');
+  }
+
+  if (data.status === 'done') {
+    document.getElementById(`prog-${dim}`).style.width = '100%';
+    log(`${data.desc}`, 'success');
+  }
+}
+
+// ── START SCAN — envia POST al backend y escucha SSE ──
+async function startTomex() {
+  if (scanning) return;
+  const url = document.getElementById('inpUrl').value;
+  const user = document.getElementById('inpUser').value;
+  const pass = document.getElementById('inpPass').value;
+  const env = document.getElementById('inpEnv').value;
+
+  if (!url) {
+    log('URL requerida para iniciar escaneo', 'error');
+    return;
+  }
+
+  scanning = true;
+  progValue = 0;
+
+  // Reset UI
+  document.getElementById('findingsList').innerHTML = '';
+  document.getElementById('termLog').innerHTML = '';
+  logCount = 0;
+  ['surface','veins','soul'].forEach(d => {
+    document.getElementById(`prog-${d}`).style.width = '0%';
+    document.getElementById(`desc-${d}`).textContent = 'Iniciando...';
+    document.getElementById(`card-${d}`).classList.remove('active');
+  });
+
+  // Activate visual
+  document.getElementById('coreUrl').textContent = url.replace(/https?:\/\//, '');
+  document.getElementById('coreUrl').style.opacity = '1';
+  document.getElementById('scene').classList.add('scanning');
+  document.getElementById('scanBeam').classList.add('active');
+  document.getElementById('soulBeam').classList.add('active');
+  document.getElementById('progRing').classList.add('show');
+  document.getElementById('btnScan').disabled = true;
+  activateAgents();
+  setProgress(0);
+
+  log('QASL·TOMEX ACTIVADO', 'info');
+  log(`Target: ${url}`, 'info');
+
+  // Conectar SSE primero, esperar conexion, luego enviar scan
+  await connectSSE();
+
+  // Enviar scan al backend
+  try {
+    const resp = await fetch(BASE + '/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, user, pass, env })
+    });
+    const result = await resp.json();
+    if (result.error) {
+      log(`Error: ${result.error}`, 'error');
+      scanning = false;
+      document.getElementById('btnScan').disabled = false;
+    } else {
+      log(`Session: ${result.sessionId}`, 'info');
+    }
+  } catch (err) {
+    log('No se pudo conectar al servidor TOMEX', 'error');
+    log('Ejecuta: node core/tomex-server.js', 'warn');
+    scanning = false;
+    document.getElementById('btnScan').disabled = false;
+    document.getElementById('scanBeam').classList.remove('active');
+    document.getElementById('soulBeam').classList.remove('active');
+  }
+}
+
+// ── SHOW RESULT (datos reales del backend) ──
+function showResult(data) {
+  setProgress(100);
+  document.getElementById('scanBeam').classList.remove('active');
+  document.getElementById('soulBeam').classList.remove('active');
+
+  const d = data.diagnosis || {};
+  const critical = d.critical?.length || 0;
+  const high = d.high?.length || 0;
+  const medium = d.medium?.length || 0;
+  const low = d.low?.length || 0;
+  const total = critical + high + medium + low;
+  const score = data.score || 0;
+  const scoreColor = score >= 80 ? '#00ff94' : score >= 60 ? '#ffc400' : '#ff1744';
+
+  document.getElementById('resultGrid').innerHTML = `
+    <div class="result-card ${score >= 80 ? 'g' : score >= 60 ? 'w' : 'b'}">
+      <div class="result-val">${score}</div><div class="result-lbl">HEALTH SCORE</div>
+    </div>
+    <div class="result-card ${critical > 0 ? 'b' : 'g'}">
+      <div class="result-val">${critical}</div><div class="result-lbl">CRITICOS</div>
+    </div>
+    <div class="result-card ${high > 0 ? 'w' : 'g'}">
+      <div class="result-val">${high}</div><div class="result-lbl">ALTOS</div>
+    </div>
+    <div class="result-card w">
+      <div class="result-val">${medium + low}</div><div class="result-lbl">MEDIOS+BAJOS</div>
+    </div>
+    <div class="result-card c">
+      <div class="result-val">${total}</div><div class="result-lbl">TOTAL ISSUES</div>
+    </div>
+    <div class="result-card g">
+      <div class="result-val">${data.duration || '—'}</div><div class="result-lbl">DURACION</div>
+    </div>
+  `;
+
+  // Score ring dinamico
+  const scoreArc = Math.round(289 * score / 100);
+  const scoreRingSvg = document.querySelector('.result svg circle:nth-child(2)');
+  if (scoreRingSvg) {
+    scoreRingSvg.setAttribute('stroke-dashoffset', 289 - scoreArc);
+    scoreRingSvg.setAttribute('stroke', scoreColor);
+  }
+  const scoreValEl = document.querySelector('.result svg + div div:first-child');
+  if (scoreValEl) {
+    scoreValEl.textContent = score;
+    scoreValEl.style.color = scoreColor;
+    scoreValEl.style.textShadow = `0 0 20px ${scoreColor}`;
+  }
+
+  // Predicciones reales
+  const preds = data.predictions || [];
+  document.getElementById('predText').innerHTML = preds.length > 0
+    ? preds.map(p => `${p.probability >= 70 ? '⚠' : '●'} ${p.timeframe}: ${p.description} (${p.probability}%)`).join('<br>')
+    : 'Sin predicciones disponibles';
+
+  document.getElementById('resultOverlay').classList.add('show');
+  log(`Diagnostico completo — Score: ${score}/100`, 'success');
+}
+
+function resetTomex(){
+  scanning = false;
+  if (evtSource) { evtSource.close(); evtSource = null; }
+  document.getElementById('resultOverlay').classList.remove('show');
+  document.getElementById('progRing').classList.remove('show');
+  document.getElementById('scene').classList.remove('scanning');
+  document.getElementById('coreUrl').style.opacity = '0';
+  document.getElementById('btnScan').disabled = false;
+  setProgress(0);
+  deactivateAgents();
+  document.getElementById('findingsList').innerHTML = '';
+  document.getElementById('termLog').innerHTML = '';
+  ['surface','veins','soul'].forEach(d => {
+    document.getElementById(`prog-${d}`).style.width = '0%';
+    document.getElementById(`desc-${d}`).textContent = 'En espera de activacion...';
+    document.getElementById(`card-${d}`).classList.remove('active');
+  });
+}
+
+function handleCoreClick(){
+  const url = document.getElementById('inpUrl').value;
+  if (url && !scanning) startTomex();
+}
+
+// ── VOICE ──
+let listening = false;
+function toggleVoice(){
+  const btn = document.getElementById('btnVoice');
+  listening = !listening;
+  btn.classList.toggle('on', listening);
+  btn.textContent = listening ? '🔴' : '🎙️';
+  if (listening) log('QASL·VOICE escuchando...', 'success');
+  else log('QASL·VOICE desactivado', 'info');
+
+  if ('webkitSpeechRecognition' in window && listening) {
+    const r = new webkitSpeechRecognition();
+    r.lang = 'es-ES';
+    r.onresult = e => {
+      const t = e.results[0][0].transcript;
+      log(`Voz: "${t}"`, 'success');
+      const m = t.match(/https?:\/\/\S+/);
+      if (m) document.getElementById('inpUrl').value = m[0];
+      listening = false;
+      btn.classList.remove('on');
+      btn.textContent = '🎙️';
+      setTimeout(startTomex, 600);
+    };
+    r.onerror = () => { listening = false; btn.classList.remove('on'); btn.textContent = '🎙️'; };
+    r.start();
+  }
+}
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+</body>
+</html>
