@@ -161,7 +161,7 @@ export class AstAnalyzer {
 
     try {
       const response = await this.claude.messages.create({
-        model: 'claude-opus-4-6',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 1000,
         messages: [{
           role: 'user',
@@ -204,7 +204,7 @@ Si no hay problemas, devolvé arrays vacíos.`
 
     try {
       const response = await this.claude.messages.create({
-        model: 'claude-opus-4-6',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 500,
         messages: [{
           role: 'user',
