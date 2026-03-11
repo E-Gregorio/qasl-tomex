@@ -1,6 +1,21 @@
 # ⬡ QASL·TOMEX
 ### Quantum Soul Scanner — El primer Tomógrafo de Testing Autónomo del mundo
 
+![Version](https://img.shields.io/badge/version-2.0.0-cyan?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-OPERATIVO-brightgreen?style=for-the-badge)
+![License](https://img.shields.io/badge/license-PROPIETARIO-red?style=for-the-badge)
+![Node](https://img.shields.io/badge/node-%3E%3D18-green?style=for-the-badge&logo=node.js)
+![Playwright](https://img.shields.io/badge/playwright-automation-blue?style=for-the-badge&logo=playwright)
+![AI](https://img.shields.io/badge/AI-Claude%20%2B%20GPT--4%20%2B%20Gemini-purple?style=for-the-badge)
+
+![Derechos](https://img.shields.io/badge/%C2%A9%202026-Todos%20los%20derechos%20reservados-black?style=for-the-badge)
+![Creador](https://img.shields.io/badge/creador-Elyer%20Gregorio%20Maldonado-gold?style=for-the-badge)
+![Ubicacion](https://img.shields.io/badge/Buenos%20Aires-Argentina%20🇦🇷-blue?style=for-the-badge)
+![Patente](https://img.shields.io/badge/patente-QASL%C2%B7CIPHER%20AES--256-critical?style=for-the-badge&logo=shield)
+![Checks](https://img.shields.io/badge/checks-23%20autom%C3%A1ticos-orange?style=for-the-badge)
+![Dimensiones](https://img.shields.io/badge/dimensiones-3%20simult%C3%A1neas-blueviolet?style=for-the-badge)
+![Agentes](https://img.shields.io/badge/agentes%20IA-3%20coordinados-yellow?style=for-the-badge)
+
 ```
 "No es una herramienta. Está viva."
 "Le ve el alma al código fuente."
